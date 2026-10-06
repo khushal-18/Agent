@@ -1,0 +1,108 @@
+version: v1
+description: Khushal's strategic methodology, encoded. Edit here, then re-run evals.
+
+laws:
+  - id: 1
+    name: Understand before recommending
+    rule: Do not recommend anything until the product, problem, and market are understood.
+  - id: 2
+    name: Find the actual problem
+    rule: Do not accept the founder's framing blindly. Strip the hype and test the problem.
+  - id: 3
+    name: Find the winnable wedge
+    rule: Prefer a winnable wedge over automatically pursuing the largest market.
+  - id: 4
+    name: Superior results over feature differentiation
+    rule: Use the superiority hierarchy. "AI-powered" and "innovative" are not differentiation.
+  - id: 5
+    name: Unexplored but feasible angle
+    rule: Prefer a realistic underexplored opportunity over waiting for a perfect white space.
+  - id: 6
+    name: Make the product feel necessary
+    rule: Explain why the customer should care and why the solution matters now, not just what it does.
+  - id: 7
+    name: Sell advantage, not only relief
+    rule: Ask what advantage solving the problem gives the customer.
+  - id: 8
+    name: Organic is the laboratory
+    rule: Organic narrative, test, signal, winning message and channel, paid amplification, scale.
+  - id: 9
+    name: Aggressive but reasoned
+    rule: If positioning is weak, say so and recommend change. Always give why, evidence, risk, upside, and how to test.
+  - id: 10
+    name: Every major recommendation has a history
+    rule: Store decision, why, evidence, alternatives rejected, assumptions, confidence, downstream impact.
+
+superiority_hierarchy:
+  - { rank: 1, name: Better results }
+  - { rank: 2, name: Faster results }
+  - { rank: 3, name: Better experience }
+  - { rank: 4, name: Easier }
+  - { rank: 5, name: More trustworthy }
+  - { rank: 6, name: Cheaper }
+  - { rank: 7, name: Status / desirability }
+  - { rank: 8, name: Innovation }
+
+icp:
+  scale: { min: 1, max: 5 }
+  factors: [pain, urgency, accessibility, ability_to_pay, solution_fit, trigger_strength]
+  beachhead_criteria:
+    - meaningful pain
+    - clear use case
+    - accessible distribution
+    - identifiable trigger
+    - ability to pay or adopt
+    - strong product fit
+    - potential for expansion
+
+opportunity:
+  scale: { min: 1, max: 5 }
+  # Starting values. Tune these using the eval suite, not by gut.
+  weights:
+    pain: 0.20
+    urgency: 0.15
+    product_fit: 0.20
+    accessibility: 0.15
+    result_advantage: 0.20
+    expansion_potential: 0.10
+  competition_penalty: 0.25
+
+competitor_research_order:
+  - Positioning
+  - GTM
+  - What they do well
+  - What they do badly
+  - Customer complaints
+  - Content / messaging
+  - Market gaps
+
+funnel_stages:
+  [awareness, interest, consideration, conversion, activation, retention, expansion, advocacy]
+
+banned_patterns:
+  - Same-template marketing
+  - Generic AI marketing language
+  - Confusing or unnecessary campaigns
+  - Campaigns that do not belong to the brand
+  - Telling customers the problem without communicating the solution
+  - Solving only one side of a larger problem
+  - Selling only pain relief
+  - Generic "post consistently" advice
+  - Random channel recommendations
+  - Generic "build awareness" strategies
+  - Generic "leverage AI" recommendations
+  - Strategy that answers the prompt without showing the strategic path
+
+# Which laws each stage receives (law 10 is always included).
+stage_laws:
+  intake: [1]
+  diagnosis: [1, 2, 4]
+  research: [1, 4]
+  opportunity: [3, 4, 5]
+  icp: [3]
+  positioning: [4, 6, 7]
+  gtm: [8]
+  funnel: [6, 7]
+  campaign: [5, 6, 7, 8]
+  critic: [9]
+  compose: [9]
