@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "doctrine:check": "tsx scripts/check-doctrine.ts",
-    "env:check": "tsx scripts/check-env.ts"
+    "env:check": "tsx scripts/check-env.ts",
+    "db:generate": "drizzle-kit generate"
   },
   "repository": {
     "type": "git",
@@ -26,12 +27,15 @@
   "homepage": "https://github.com/khushal-18/Agent#readme",
   "private": "true",
   "dependencies": {
+    "@libsql/client": "^0.18.0",
     "dotenv": "^18.0.6",
+    "drizzle-orm": "^0.45.3",
     "yaml": "^2.9.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
+    "drizzle-kit": "^0.31.11",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.0.3"
