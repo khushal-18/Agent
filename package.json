@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "doctrine:check": "tsx scripts/check-doctrine.ts",
     "env:check": "tsx scripts/check-env.ts",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "llm:ping": "tsx scripts/llm-ping.ts",
+    "smoke": "tsx scripts/smoke.ts"
   },
   "repository": {
     "type": "git",
@@ -27,6 +29,7 @@
   "homepage": "https://github.com/khushal-18/Agent#readme",
   "private": "true",
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
     "@libsql/client": "^0.18.0",
     "dotenv": "^18.0.6",
     "drizzle-orm": "^0.45.3",
