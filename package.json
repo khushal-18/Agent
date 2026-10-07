@@ -13,7 +13,9 @@
     "env:check": "tsx scripts/check-env.ts",
     "db:generate": "drizzle-kit generate",
     "llm:ping": "tsx scripts/llm-ping.ts",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "diagnose": "tsx scripts/diagnose.ts",
+    "llm:models": "tsx scripts/list-models.ts"
   },
   "repository": {
     "type": "git",

@@ -12,6 +12,7 @@ const EnvSchema = z
     LLM_PROVIDER: z.enum(["gemini", "anthropic"]).default("gemini"),
     GEMINI_API_KEY: optionalKey,
     GEMINI_MODEL: z.string().default("gemini-3.8-flash"),
+    GEMINI_FALLBACK_MODEL: optionalKey,
     ANTHROPIC_API_KEY: optionalKey,
     ANTHROPIC_MODEL: z.string().default("claude-sonnet-5-5"),
     DATABASE_URL: z.string().default("file:./data/khushal.db"),

@@ -35,3 +35,6 @@ Thumbs.db
 # misc
 *.pem
 .vercel
+
+# client-confidential briefs
+briefs/private/*

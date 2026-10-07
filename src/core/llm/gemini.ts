@@ -1,26 +1,74 @@
 import type { LlmClient, LlmMessage } from "./types";
 
 const BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
-const RETRYABLE = new Set([429, 500, 503]);
+/** Temporary conditions worth retrying: rate limit, server error, "high demand", timeout. */
+const TRANSIENT = new Set([429, 500, 503, 504]);
+
+export class GeminiApiError extends Error {
+  constructor(
+    public status: number,
+    detail: string
+  ) {
+    super(`Gemini API error ${status}: ${detail}`);
+    this.name = "GeminiApiError";
+  }
+}
+
+export interface GeminiOptions {
+  /** Used only if the main model keeps failing with a temporary error (or 404). */
+  fallbackModel?: string;
+  /** Retries per model. Default 5. */
+  maxRetries?: number;
+  /** Base delay in ms; doubles on every retry (2s, 4s, 8s, 16s, 32s by default). */
+  retryDelayMs?: number;
+  /** Progress messages. Defaults to console.error so a long wait is visible. */
+  onRetry?: (message: string) => void;
+}
 
 interface GeminiResponse {
   candidates?: { content?: { parts?: { text?: string }[] }; finishReason?: string }[];
   promptFeedback?: { blockReason?: string };
 }
 
-/**
- * Gemini via its REST API (no SDK needed). Retries briefly on rate limits (429)
- * and transient server errors, which are common on the free tier.
- */
+/** Gemini via its REST API (no SDK). Patient with temporary errors, optional fallback model. */
 export class GeminiLlm implements LlmClient {
   constructor(
     private apiKey: string,
     private model: string,
-    private opts: { maxRetries?: number; retryDelayMs?: number } = {}
+    private opts: GeminiOptions = {}
   ) {}
 
+  private log(message: string) {
+    (this.opts.onRetry ?? ((m: string) => console.error(m)))(message);
+  }
+
   async complete(args: { system: string; messages: LlmMessage[]; maxTokens?: number }): Promise<string> {
-    const url = `${BASE_URL}/${encodeURIComponent(this.model)}:generateContent`;
+    try {
+      return await this.callModel(this.model, args);
+    } catch (e) {
+      const fallback = this.opts.fallbackModel;
+      const canFallback =
+        !!fallback &&
+        fallback !== this.model &&
+        e instanceof GeminiApiError &&
+        (TRANSIENT.has(e.status) || e.status === 404);
+      if (!canFallback) throw e;
+      this.log(`Model "${this.model}" failed (${e.status}). Falling back to "${fallback}".`);
+      try {
+        return await this.callModel(fallback, args);
+      } catch (fe) {
+        // Report both failures so the original problem is not hidden behind the fallback's.
+        const detail = fe instanceof Error ? fe.message : String(fe);
+        throw new Error(`Both models failed.\n  main "${this.model}": ${e.message}\n  fallback "${fallback}": ${detail}`);
+      }
+    }
+  }
+
+  private async callModel(
+    model: string,
+    args: { system: string; messages: LlmMessage[]; maxTokens?: number }
+  ): Promise<string> {
+    const url = `${BASE_URL}/${encodeURIComponent(model)}:generateContent`;
     const body = {
       systemInstruction: { parts: [{ text: args.system }] },
       contents: args.messages.map((m) => ({
@@ -31,8 +79,8 @@ export class GeminiLlm implements LlmClient {
       generationConfig: { maxOutputTokens: args.maxTokens ?? 8192, responseMimeType: "application/json" },
     };
 
-    const maxRetries = this.opts.maxRetries ?? 3;
-    const baseDelay = this.opts.retryDelayMs ?? 1500;
+    const maxRetries = this.opts.maxRetries ?? 5;
+    const baseDelay = this.opts.retryDelayMs ?? 2000;
 
     for (let attempt = 0; ; attempt++) {
       const res = await fetch(url, {
@@ -51,13 +99,14 @@ export class GeminiLlm implements LlmClient {
         return text;
       }
 
-      if (RETRYABLE.has(res.status) && attempt < maxRetries) {
-        await new Promise((r) => setTimeout(r, baseDelay * (attempt + 1)));
+      if (TRANSIENT.has(res.status) && attempt < maxRetries) {
+        const delay = baseDelay * 2 ** attempt;
+        this.log(`Gemini busy (${res.status}) on "${model}". Retry ${attempt + 1}/${maxRetries} in ${Math.round(delay / 1000)}s...`);
+        await new Promise((r) => setTimeout(r, delay));
         continue;
       }
       // Never include the API key in error text.
-      const detail = (await res.text()).slice(0, 300);
-      throw new Error(`Gemini API error ${res.status}: ${detail}`);
+      throw new GeminiApiError(res.status, (await res.text()).slice(0, 300));
     }
   }
 }
