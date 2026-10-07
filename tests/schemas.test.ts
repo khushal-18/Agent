@@ -32,7 +32,7 @@ describe("DecisionSchema", () => {
 describe("AgentOutputSchema", () => {
   it("allows contradicts_upstream only in the explicit shape", () => {
     const base = {
-      recommendation: "x", rationale: "y", evidence_refs: [], assumptions: [], confidence: 5,
+      recommendation: "x", rationale: "y", evidence_refs: [], assumptions: [], confidence: 5, validation_needed: "v",
       alternatives_considered: [{ option: "a", why_not: "b" }], downstream_implications: [],
     };
     expect(AgentOutputSchema.safeParse(base).success).toBe(true);

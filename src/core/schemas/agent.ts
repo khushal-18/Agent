@@ -19,6 +19,7 @@ export const AgentOutputSchema = z.object({
   evidence_refs: z.array(z.string()),
   assumptions: z.array(z.string()),
   confidence: z.number().int().min(1).max(10),
+  validation_needed: z.string().min(1), // what would prove this wrong / what to test next
   alternatives_considered: z.array(AlternativeSchema).min(1),
   downstream_implications: z.array(z.string()),
   contradicts_upstream: ContradictsUpstreamSchema.optional(),
