@@ -23,6 +23,8 @@ export const AgentOutputSchema = z.object({
   alternatives_considered: z.array(AlternativeSchema).min(1),
   downstream_implications: z.array(z.string()),
   contradicts_upstream: ContradictsUpstreamSchema.optional(),
+  // Stage-specific structured payload (e.g. the full diagnosis report). Rendered by the UI.
+  detail: z.record(z.string(), z.unknown()).optional(),
 });
 export type AgentOutput = z.infer<typeof AgentOutputSchema>;
 
