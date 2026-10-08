@@ -15,7 +15,10 @@
     "llm:ping": "tsx scripts/llm-ping.ts",
     "smoke": "tsx scripts/smoke.ts",
     "diagnose": "tsx scripts/diagnose.ts",
-    "llm:models": "tsx scripts/list-models.ts"
+    "llm:models": "tsx scripts/list-models.ts",
+    "ledger": "tsx scripts/show-ledger.ts",
+    "research": "tsx scripts/research.ts",
+    "search:ping": "tsx scripts/search-ping.ts"
   },
   "repository": {
     "type": "git",

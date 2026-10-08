@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ResearchItemSchema } from "./researchItem";
 import { StageSchema } from "./stages";
 
 export const AlternativeSchema = z.object({
@@ -25,6 +26,8 @@ export const AgentOutputSchema = z.object({
   contradicts_upstream: ContradictsUpstreamSchema.optional(),
   // Stage-specific structured payload (e.g. the full diagnosis report). Rendered by the UI.
   detail: z.record(z.string(), z.unknown()).optional(),
+  // Sourced facts gathered by this stage. The orchestrator saves them as research_items.
+  research_items: z.array(ResearchItemSchema).optional(),
 });
 export type AgentOutput = z.infer<typeof AgentOutputSchema>;
 

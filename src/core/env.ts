@@ -15,6 +15,8 @@ const EnvSchema = z
     GEMINI_FALLBACK_MODEL: optionalKey,
     ANTHROPIC_API_KEY: optionalKey,
     ANTHROPIC_MODEL: z.string().default("claude-sonnet-5-5"),
+    SEARCH_CACHE_HOURS: z.coerce.number().min(0).max(720).default(24),
+    RESEARCH_MAX_QUERIES: z.coerce.number().int().min(1).max(12).default(6),
     DATABASE_URL: z.string().default("file:./data/khushal.db"),
     DOCTRINE_VERSION: z.string().default("v1"),
     MAX_REVISION_PASSES: z.coerce.number().int().min(0).max(5).default(2),

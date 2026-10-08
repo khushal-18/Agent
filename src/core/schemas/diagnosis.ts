@@ -51,7 +51,7 @@ export const DiagnosisReportSchema = z.object({
 export type DiagnosisReport = z.infer<typeof DiagnosisReportSchema>;
 
 /** What the model must return for the diagnosis stage: the standard agent contract + the full report. */
-export const DiagnosisOutputSchema = AgentOutputSchema.omit({ contradicts_upstream: true, detail: true }).extend({
+export const DiagnosisOutputSchema = AgentOutputSchema.omit({ contradicts_upstream: true, detail: true, research_items: true }).extend({
   detail: DiagnosisReportSchema,
 });
 export type DiagnosisOutput = z.infer<typeof DiagnosisOutputSchema>;

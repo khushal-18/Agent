@@ -5,6 +5,7 @@ export const DoctrineSliceSchema = z.object({
   laws: z.array(z.object({ id: z.number(), name: z.string(), rule: z.string() })),
   banned_patterns: z.array(z.string()),
   superiority_hierarchy: z.array(z.object({ rank: z.number(), name: z.string() })),
+  competitor_research_order: z.array(z.string()).optional(),
 });
 export type DoctrineSlice = z.infer<typeof DoctrineSliceSchema>;
 

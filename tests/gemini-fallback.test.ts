@@ -34,7 +34,7 @@ describe("GeminiLlm resilience", () => {
   });
 
   it("throws when there is no fallback", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("busy", { status: 503 })));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("busy", { status: 503 })));
     await expect(new GeminiLlm("k", "main", { ...quiet, maxRetries: 1 }).complete(call)).rejects.toThrow(/Gemini API error 503/);
   });
 

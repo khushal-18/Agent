@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
-import { projects, stageRuns } from "../../db/schema";
+import { projects, researchItems, stageRuns } from "../../db/schema";
 import { doctrineSliceForStage } from "../doctrine/load";
 import {
   getActiveDecisionsForStage,
@@ -16,6 +16,7 @@ import { STAGES, type Stage } from "../schemas/stages";
 import type { Deps, PipelineResult, StageResult } from "./types";
 
 type StageRunRow = typeof stageRuns.$inferSelect;
+type Committed = Extract<StageResult, { status: "awaiting_user" }>;
 
 export async function latestRun(deps: Deps, projectId: string, stage: Stage): Promise<StageRunRow | undefined> {
   const [row] = await deps.db
@@ -41,6 +42,23 @@ function toDecision(stage: Stage, o: AgentOutput): Decision {
   };
 }
 
+/** Sourced facts gathered by research are saved so every later stage can cite them. */
+async function saveResearchItems(deps: Deps, projectId: string, stage: Stage, output: AgentOutput): Promise<void> {
+  if (!output.research_items?.length) return;
+  await deps.db.insert(researchItems).values(
+    output.research_items.map((i) => ({
+      id: i.id,
+      projectId,
+      stage,
+      sourceUrl: i.source_url,
+      claim: i.claim,
+      excerptSummary: i.excerpt_summary,
+      type: i.type,
+      confidence: i.confidence,
+    }))
+  );
+}
+
 /**
  * The orchestrator, not the agent, assembles the context packet.
  * Agents only ever see what they are given here.
@@ -55,6 +73,13 @@ async function buildInput(deps: Deps, projectId: string, stage: Stage, challenge
     if (run) upstream[s] = run.output;
   }
 
+  const research = await deps.db
+    .select()
+    .from(researchItems)
+    .where(eq(researchItems.projectId, projectId))
+    .orderBy(desc(researchItems.createdAt))
+    .limit(80);
+
   return AgentInputSchema.parse({
     stage,
     objective: `Complete the "${stage}" stage for project "${project.name}".`,
@@ -66,15 +91,57 @@ async function buildInput(deps: Deps, projectId: string, stage: Stage, challenge
       rationale: d.rationale,
       confidence: d.confidence,
     })),
-    relevant_research: [],
+    relevant_research: research.map((r) => ({
+      id: r.id,
+      type: r.type,
+      claim: r.claim,
+      summary: r.excerptSummary,
+      source_url: r.sourceUrl,
+      confidence: r.confidence,
+    })),
     upstream_outputs: upstream,
     constraints: { ...project.constraints, ...(challengeNote ? { challenge_note: challengeNote } : {}) },
     doctrine_slice: doctrineSliceForStage(deps.doctrine, stage),
   });
 }
 
+/** Writes the stage's decision to the ledger (superseding the previous one) and links it upstream. */
+async function commitDecision(
+  deps: Deps,
+  projectId: string,
+  stage: Stage,
+  output: AgentOutput,
+  runId: string,
+  evidenceNote?: string
+): Promise<Committed> {
+  const idx = STAGES.indexOf(stage);
+  const prevStage = idx > 0 ? STAGES[idx - 1] : undefined;
+  const dependsOn = prevStage ? (await getActiveDecisionsForStage(deps.db, projectId, prevStage)).map((d) => d.id) : [];
+  const decision = toDecision(stage, output);
+  const existing = await getLiveDecisionsForStage(deps.db, projectId, stage);
+
+  let decisionId: string;
+  let flaggedStages: Stage[] = [];
+  if (existing.length) {
+    const rev = await reviseDecision(deps.db, {
+      projectId,
+      oldDecisionId: existing[0].id,
+      newDecision: decision,
+      newEvidence: evidenceNote ?? "Stage re-run",
+      dependsOn,
+    });
+    decisionId = rev.newDecisionId;
+    flaggedStages = rev.flaggedStages;
+  } else {
+    decisionId = await recordDecision(deps.db, projectId, decision, { dependsOn });
+  }
+
+  await deps.db.update(projects).set({ currentStage: stage }).where(eq(projects.id, projectId));
+  return { status: "awaiting_user", stage, runId, decisionId, flaggedStages };
+}
+
 /**
- * Runs one stage: agent -> validate -> ledger -> gate (awaiting_user).
+ * Runs one stage: agent -> validate -> save evidence -> ledger -> gate (awaiting_user).
  * Re-running a stage (a "challenge") supersedes its previous decision and flags downstream work as stale.
  */
 export async function runStage(
@@ -108,35 +175,37 @@ export async function runStage(
     output,
   });
 
+  // Evidence is kept even when the stage contradicts upstream: it is the reason for the revision.
+  await saveResearchItems(deps, projectId, stage, output);
+
   // No silent contradictions: disagreement with upstream pauses the pipeline for a human decision.
   if (output.contradicts_upstream) {
     return { status: "revision_requested", stage, runId, contradiction: output.contradicts_upstream };
   }
 
-  const dependsOn = prevStage
-    ? (await getActiveDecisionsForStage(deps.db, projectId, prevStage)).map((d) => d.id)
-    : [];
-  const decision = toDecision(stage, output);
-  const existing = await getLiveDecisionsForStage(deps.db, projectId, stage);
+  return commitDecision(deps, projectId, stage, output, runId, opts.challengeNote);
+}
 
-  let decisionId: string;
-  let flaggedStages: Stage[] = [];
-  if (existing.length) {
-    const rev = await reviseDecision(deps.db, {
-      projectId,
-      oldDecisionId: existing[0].id,
-      newDecision: decision,
-      newEvidence: opts.challengeNote ?? "Stage re-run",
-      dependsOn,
-    });
-    decisionId = rev.newDecisionId;
-    flaggedStages = rev.flaggedStages;
-  } else {
-    decisionId = await recordDecision(deps.db, projectId, decision, { dependsOn });
+/**
+ * The human keeps the upstream decision despite the agent's objection. The objection is not lost:
+ * it is recorded in the stage's assumptions, which flow into the ledger.
+ */
+export async function overruleContradiction(deps: Deps, projectId: string, stage: Stage): Promise<Committed> {
+  const run = await latestRun(deps, projectId, stage);
+  const output = run && (run.output as AgentOutput);
+  if (!run || run.status !== "awaiting_user" || !output?.contradicts_upstream) {
+    throw new Error(`Stage "${stage}" has no pending contradiction to overrule.`);
   }
-
-  await deps.db.update(projects).set({ currentStage: stage }).where(eq(projects.id, projectId));
-  return { status: "awaiting_user", stage, runId, decisionId, flaggedStages };
+  const { contradicts_upstream, ...rest } = output;
+  const cleaned: AgentOutput = {
+    ...rest,
+    assumptions: [
+      ...rest.assumptions,
+      `Upstream decision kept by the user despite this evidence: ${contradicts_upstream.new_evidence}`,
+    ],
+  };
+  await deps.db.update(stageRuns).set({ output: cleaned }).where(eq(stageRuns.id, run.id));
+  return commitDecision(deps, projectId, stage, cleaned, run.id, "Contradiction overruled by user");
 }
 
 /** The gate: the user accepts the stage's output so the next stage may run. */

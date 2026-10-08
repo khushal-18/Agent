@@ -54,5 +54,6 @@ export function doctrineSliceForStage(d: Doctrine, stage: Stage) {
     laws: d.laws.filter((l) => ids.has(l.id)),
     banned_patterns: d.banned_patterns,
     superiority_hierarchy: d.superiority_hierarchy,
+    competitor_research_order: d.competitor_research_order,
   };
 }

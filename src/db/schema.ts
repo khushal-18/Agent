@@ -7,7 +7,17 @@ const createdAt = () =>
 
 export const STAGE_RUN_STATUSES = ["pending", "awaiting_user", "complete", "stale"] as const;
 export const DECISION_STATUSES = ["active", "superseded", "stale"] as const;
-export const RESEARCH_TYPES = ["competitor_positioning", "gtm", "complaint", "gap", "market"] as const;
+// Keep in sync with src/core/schemas/researchItem.ts (a test checks this).
+export const RESEARCH_TYPES = [
+  "competitor_positioning",
+  "gtm",
+  "strength",
+  "weakness",
+  "complaint",
+  "messaging",
+  "gap",
+  "market",
+] as const;
 
 export const projects = sqliteTable("projects", {
   id: text("id").primaryKey(),
