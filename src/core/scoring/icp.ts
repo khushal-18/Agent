@@ -21,7 +21,7 @@ export function assertScoreInRange(name: string, value: number, min: number, max
  * ICP = Pain x Urgency x Accessibility x AbilityToPay x SolutionFit x TriggerStrength
  * Multiplicative on purpose: one weak factor drags the whole candidate down.
  */
-export function scoreIcp(scores: FactorScores, d: Doctrine): IcpScore {
+export function scoreIcp(scores: FactorScores, d: Pick<Doctrine, "icp">): IcpScore {
   const { min, max } = d.icp.scale;
   const factors = d.icp.factors;
 

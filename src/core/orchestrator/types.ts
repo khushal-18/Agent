@@ -6,6 +6,8 @@ import type { Db } from "../../db/client";
 /** Agents are modular and replaceable: anything that satisfies this can be plugged in. */
 export interface Agent {
   stage: Stage;
+  /** True for placeholder agents that have not been built yet. */
+  isStub?: boolean;
   run(input: AgentInput): Promise<AgentOutput>;
 }
 

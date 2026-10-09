@@ -18,7 +18,8 @@
     "llm:models": "tsx scripts/list-models.ts",
     "ledger": "tsx scripts/show-ledger.ts",
     "research": "tsx scripts/research.ts",
-    "search:ping": "tsx scripts/search-ping.ts"
+    "search:ping": "tsx scripts/search-ping.ts",
+    "session": "tsx scripts/session.ts"
   },
   "repository": {
     "type": "git",

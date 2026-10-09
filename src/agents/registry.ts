@@ -2,7 +2,9 @@ import type { LlmClient, SearchClient } from "../core/llm/types";
 import type { Agent } from "../core/orchestrator/types";
 import { STAGES, type Stage } from "../core/schemas/stages";
 import { createDiagnosisAgent } from "./diagnosis";
+import { createIcpAgent } from "./icp";
 import { createIntakeAgent } from "./intake";
+import { createOpportunityAgent } from "./opportunity";
 import { createResearchAgent, type ResearchAgentOptions } from "./research";
 import { createStubAgent } from "./stub";
 
@@ -16,5 +18,7 @@ export function buildAgents(
   agents.intake = createIntakeAgent();
   agents.diagnosis = createDiagnosisAgent(llm);
   if (search) agents.research = createResearchAgent(llm, search, research);
+  agents.opportunity = createOpportunityAgent(llm);
+  agents.icp = createIcpAgent(llm);
   return agents;
 }

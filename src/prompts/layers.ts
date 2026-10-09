@@ -6,6 +6,20 @@ export const DoctrineSliceSchema = z.object({
   banned_patterns: z.array(z.string()),
   superiority_hierarchy: z.array(z.object({ rank: z.number(), name: z.string() })),
   competitor_research_order: z.array(z.string()).optional(),
+  icp: z
+    .object({
+      scale: z.object({ min: z.number(), max: z.number() }),
+      factors: z.array(z.string()),
+      beachhead_criteria: z.array(z.string()),
+    })
+    .optional(),
+  opportunity: z
+    .object({
+      scale: z.object({ min: z.number(), max: z.number() }),
+      weights: z.record(z.string(), z.number()),
+      competition_penalty: z.number(),
+    })
+    .optional(),
 });
 export type DoctrineSlice = z.infer<typeof DoctrineSliceSchema>;
 

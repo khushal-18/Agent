@@ -24,7 +24,7 @@ export interface OpportunityScore {
  * total = base x (1 - competition_penalty x normalizedCompetition)
  * Competition acts as a penalty, not as a factor to maximise.
  */
-export function scoreOpportunity(input: OpportunityInput, d: Doctrine): OpportunityScore {
+export function scoreOpportunity(input: OpportunityInput, d: Pick<Doctrine, "opportunity">): OpportunityScore {
   const { min, max } = d.opportunity.scale;
   const weights = d.opportunity.weights;
 
@@ -45,6 +45,6 @@ export function scoreOpportunity(input: OpportunityInput, d: Doctrine): Opportun
   return { name: input.name, weighted, penaltyFraction, total: base * (1 - penaltyFraction) };
 }
 
-export function rankOpportunities(inputs: OpportunityInput[], d: Doctrine): OpportunityScore[] {
+export function rankOpportunities(inputs: OpportunityInput[], d: Pick<Doctrine, "opportunity">): OpportunityScore[] {
   return inputs.map((i) => scoreOpportunity(i, d)).sort((a, b) => b.total - a.total);
 }

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { and, desc, eq } from "drizzle-orm";
-import { projects, researchItems, stageRuns } from "../../db/schema";
+import { decisions, projects, researchItems, stageRuns } from "../../db/schema";
 import { doctrineSliceForStage } from "../doctrine/load";
 import {
   getActiveDecisionsForStage,
@@ -206,6 +206,29 @@ export async function overruleContradiction(deps: Deps, projectId: string, stage
   };
   await deps.db.update(stageRuns).set({ output: cleaned }).where(eq(stageRuns.id, run.id));
   return commitDecision(deps, projectId, stage, cleaned, run.id, "Contradiction overruled by user");
+}
+
+/** The first stage, in order, that has no accepted output (never run, awaiting review, or stale). */
+export async function nextIncompleteStage(deps: Deps, projectId: string): Promise<Stage | undefined> {
+  for (const stage of STAGES) {
+    const run = await latestRun(deps, projectId, stage);
+    if (run?.status !== "complete") return stage;
+  }
+  return undefined;
+}
+
+/**
+ * A contradiction that pointed at a decision which has since been revised is obsolete: the stage that
+ * raised it must be re-run against the new decision. Marks that run stale. Returns true if it did.
+ */
+export async function reopenIfObsolete(deps: Deps, projectId: string, stage: Stage): Promise<boolean> {
+  const run = await latestRun(deps, projectId, stage);
+  const contradiction = run?.status === "awaiting_user" ? (run.output as AgentOutput).contradicts_upstream : undefined;
+  if (!run || !contradiction) return false;
+  const [target] = await deps.db.select().from(decisions).where(eq(decisions.id, contradiction.decision_id));
+  if (!target || target.status !== "superseded") return false;
+  await deps.db.update(stageRuns).set({ status: "stale" }).where(eq(stageRuns.id, run.id));
+  return true;
 }
 
 /** The gate: the user accepts the stage's output so the next stage may run. */

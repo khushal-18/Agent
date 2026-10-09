@@ -11,6 +11,7 @@ import {
   synthJson,
 } from "./helpers/research-fixtures";
 import { buildAgents } from "../src/agents/registry";
+import { createStubAgent } from "../src/agents/stub";
 import { createResearchAgent, RESEARCH_CONFIDENCE_CAP, THIN_EVIDENCE_CAP } from "../src/agents/research";
 import { createProject, listDecisions } from "../src/core/memory/ledger";
 import {
@@ -141,7 +142,7 @@ describe("research inside the orchestrator", () => {
 
   const setup = async (synth: object = synthJson(), diagnosisConfidence = 6) => {
     const agents = buildAgents(fakeResearchLlm(synth, diagnosisConfidence), fakeSearch(), { maxQueries: 3, newId: counter() });
-    const original = agents.opportunity;
+    const original = createStubAgent("opportunity"); // the real opportunity agent is not what this test is about
     const spy: Agent = {
       stage: "opportunity",
       run: async (input) => {

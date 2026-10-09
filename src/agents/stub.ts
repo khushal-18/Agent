@@ -6,6 +6,7 @@ import type { Stage } from "../core/schemas/stages";
 export function createStubAgent(stage: Stage, overrides: Partial<AgentOutput> = {}): Agent {
   return {
     stage,
+    isStub: true,
     async run(input) {
       const note = input.constraints["challenge_note"];
       return {

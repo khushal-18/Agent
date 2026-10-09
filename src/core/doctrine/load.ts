@@ -55,5 +55,7 @@ export function doctrineSliceForStage(d: Doctrine, stage: Stage) {
     banned_patterns: d.banned_patterns,
     superiority_hierarchy: d.superiority_hierarchy,
     competitor_research_order: d.competitor_research_order,
+    icp: d.icp,
+    opportunity: d.opportunity,
   };
 }
